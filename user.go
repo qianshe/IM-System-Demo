@@ -84,6 +84,20 @@ func (user *User) DoMessage(msg string) {
 			user.Name = newName
 			user.SendMsg("用户名更新成功！：" + newName + "\n")
 		}
+	} else if len(msg) > 3 && msg[:3] == "to|" {
+		//消息格式  to|张三|msg
+		//获取对方用户名
+		remoteName := strings.Split(msg, "|")[1]
+		toMsg := strings.Split(msg, "|")[2]
+
+		//根据用户名找到用户对象
+		toUser, ok := user.server.OnlineMap[remoteName]
+		if ok {
+			//发送消息内容
+			toUser.SendMsg("用户：" + user.Name + "给你发送的消息：" + toMsg)
+		} else {
+			user.SendMsg("目标用户不存在或未上线")
+		}
 	} else {
 		user.server.BroadCast(user, msg)
 	}

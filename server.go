@@ -91,7 +91,7 @@ func (ser *Server) Handler(conn net.Conn) {
 		select {
 		case <-isLive:
 			//用户活跃，为了激活select，重置超时时间
-		case <-time.After(time.Second * 20):
+		case <-time.After(time.Minute * 1):
 			//已经超时
 			//将当前User强制关闭
 			user.SendMsg("你被T了")
