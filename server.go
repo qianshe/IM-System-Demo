@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"sync"
 )
@@ -52,17 +53,32 @@ func (ser *Server) BroadCast(user *User, msg string) {
 
 func (ser *Server) Handler(conn net.Conn) {
 	// ... 当前链接的业务
-	fmt.Println("链接建立成功!")
+	//fmt.Println("链接建立成功!")
 
-	user := NewUser(conn)
+	user := NewUser(conn, ser)
 
-	//用户上限，将用户加入onlineMap中
-	ser.mapLock.Lock()
-	ser.OnlineMap[user.Name] = user
-	ser.mapLock.Unlock()
+	user.Online()
 
-	//广播当前用户上线消息
-	ser.BroadCast(user, "已上线")
+	//接受客户端消息
+	go func() {
+		buf := make([]byte, 4096)
+		for {
+			n, err := conn.Read(buf)
+			if n == 0 {
+				user.Offline()
+				return
+			}
+
+			if err != nil && err != io.EOF {
+				fmt.Println("Conn Read err:", err)
+				return
+			}
+
+			msg := string(buf[:n-1])
+			//将消息广播
+			user.DoMessage(msg)
+		}
+	}()
 
 	//当前handler阻塞
 	select {}
