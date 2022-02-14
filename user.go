@@ -14,11 +14,13 @@ type User struct {
 // NewUser 创建一个用户的API
 func NewUser(conn net.Conn, server *Server) *User {
 	userAddr := conn.RemoteAddr().String()
+
 	user := &User{
-		Name:   userAddr,
-		Addr:   userAddr,
-		C:      make(chan string),
-		conn:   conn,
+		Name: userAddr,
+		Addr: userAddr,
+		C:    make(chan string),
+		conn: conn,
+
 		server: server,
 	}
 
@@ -49,15 +51,31 @@ func (user *User) Offline() {
 	user.server.BroadCast(user, "已下线")
 }
 
+//给当前用户发送消息
+func (user *User) SendMsg(msg string) {
+	user.conn.Write([]byte(msg))
+}
+
 //处理消息
 func (user *User) DoMessage(msg string) {
-	user.server.BroadCast(user, msg)
+	if msg == "list" {
+		//查询当前用户列表
+		user.server.mapLock.Lock()
+		for _, user1 := range user.server.OnlineMap {
+			user.SendMsg("[" + user1.Addr + "]" + user1.Name + ":" + "在线...\n")
+		}
+		user.server.mapLock.Unlock()
+
+	} else {
+		user.server.BroadCast(user, msg)
+	}
 }
 
 // ListenMessage 监听当前User channel的方法，有消息就发给客户端
 func (user *User) ListenMessage() {
 	for {
 		msg := <-user.C
+
 		user.conn.Write([]byte(msg + "\n"))
 	}
 }
